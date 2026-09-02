@@ -1,0 +1,386 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Application | NVS Hadamaus PSX Server | v1.0.0 | Thomas Lehne"
+
+Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W2508 # Availability Zone Parameter should be of type AWS::EC2::AvailabilityZone::Name
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: VPC
+        Parameters:
+          - AvailabilityZone
+      - Label:
+          default: EC2 Instance
+        Parameters:
+          - KeyPair
+          - InstanceType
+          - AMI
+          - DataVolumeSize
+          - RootVolumeSize
+          - ApplicationName
+          - Environment
+          - Subsystem
+          - VolSnapshotID
+          - LogstashDownloadUrl
+
+# ============================================================================ #
+
+Parameters:
+
+  AvailabilityZone:
+    Type: String
+    AllowedValues:
+      - eu-central-1a
+      - eu-central-1b
+      - eu-central-1c
+    Description: 'The AZ to use when building up this stack. Warning: changing the AZ will discard the volume!'
+  KeyPair:
+    Type: "AWS::EC2::KeyPair::KeyName"
+    Default: iat-dbv3-180413
+  InstanceType:
+    Type: String
+    Default: t3.medium
+    AllowedValues:
+      - m5.large
+      - t3.medium
+  AMI:
+    Type: "AWS::EC2::Image::Id"
+    Default: ami-05b938058e39a8a02
+    Description: "see https://eu-central-1.console.aws.amazon.com/ec2/home?region=eu-central-1#Images:visibility=owned-by-me;search=Amazon%20Linux%202023;sort=desc:creationDate"
+  DataVolumeSize:
+    Type: Number
+    Default: 50
+    Description: "Size of attached Data Vol in GB"
+  RootVolumeSize:
+    Type: Number
+    Default: 30
+    Description: "Size of root system from the Ec2 GB"
+  ApplicationName:
+    Type: String
+    Default: nvs
+  Environment:
+    Type: String
+    Default: psx
+  Subsystem:
+    Type: String
+    Default: logstash
+  VolSnapshotID:
+    Description: The ID of a logstash data volume snapshot (only when create a new stack with backup data)
+    Type: String
+    Default: ""
+  LogstashDownloadUrl:
+    Type: String
+    Default: s3://556971410989-nvs/install/logstash_psx/logstash-8.17.0-x86_64.rpm
+    Description: 'Enter the s3 path of the logstash rpm file'
+
+# ============================================================================ #
+
+#Conditions:
+Conditions: 
+  UseVolSnapshot: !Not [!Equals [!Ref VolSnapshotID, ""]]  
+# ============================================================================ #
+
+Mappings:
+
+  AvailabilityZoneMap:
+    eu-central-1a:
+      Index: 1
+    eu-central-1b:
+      Index: 2
+    eu-central-1c:
+      Index: 3
+
+# ============================================================================ #
+
+Resources:
+
+  LogstashAl23PsxServerEc2InstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - !ImportValue infra-base-DBVServerCommonV1
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              #- Effect: Allow
+              #  Action:
+              #    - sts:DecodeAuthorizationMessage
+              #  Resource: '*'
+              #- Effect: Allow
+              #  Action:
+              #    - s3:ListBucket*
+              #  Resource:
+              #    - !Sub arn:aws:s3:::${AWS::AccountId}-common-daten
+              #    - !Sub arn:aws:s3:::${AWS::AccountId}-common-daten/*
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:Get*
+                  - s3:List*
+                Resource:                  
+                  - !Sub arn:aws:s3:::${AWS::AccountId}-nvs/install/logstash_psx/*
+                  - !Sub arn:aws:s3:::${AWS::AccountId}-nvs/logs/startup/*
+              - Effect: Allow
+                Action:
+                  - ec2:AttachVolume
+                  - ec2:DescribeInstances
+                  - ec2:DescribeVolumes
+                  - ec2:DetachVolume
+                  - ec2:CreateLaunchTemplateVersion
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - route53:ChangeResourceRecordSets
+                  - route53:GetHostedZone
+                  - route53:ListHostedZones
+                  - route53:ListResourceRecordSets
+                Resource: '*'
+        - PolicyName: PsxLogstashAl23Policy
+          PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+               - Effect: Allow
+                 Action:
+                  - cloudwatch:PutMetricAlarm
+                  - cloudwatch:DeleteAlarms
+                 Resource: '*'
+               - Effect: Allow
+                 Action:
+                    - cloudformation:CreateChangeSet
+                    - cloudformation:UpdateStack                    
+                    - autoscaling:*
+                    - iam:PassRole
+                 Resource:
+                    - !Sub arn:aws:cloudformation:eu-central-1:${AWS::AccountId}:stack/*psx*
+                    - !Sub arn:aws:autoscaling:eu-central-1:${AWS::AccountId}:launchConfiguration:*:launchConfigurationName/*psx*
+                    - !Sub arn:aws:autoscaling:eu-central-1:${AWS::AccountId}:launchTemplate:*:launchTemplateName/*psx*
+                    - !Sub arn:aws:iam::${AWS::AccountId}:role/*psx*InstanceRole*
+                    #- !Sub arn:aws:iam::${AWS::AccountId}:role/nvs-psx*-bibe-BibeServerRole-*
+                    #- !Sub arn:aws:iam::${AWS::AccountId}:role/*psx.hdm.*
+                    #- !Sub arn:aws:iam::${AWS::AccountId}:role/*psx-hdm.*
+                    - !Sub arn:aws:autoscaling:eu-central-1:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/*psx*
+                    - !Sub arn:aws:sts::${AWS::AccountId}:assumed-role/*psx*
+                    #- !Sub arn:aws:cloudwatch:eu-central-1:${AWS::AccountId}:alarm:*psx*
+               #- Effect: Allow
+               #  Sid: CloudFormationCreateUpdate
+               #  Action:
+               #     - s3:Get*
+               #     - s3:PutObject
+               #     - s3:List*
+               #  Resource:
+                    #- !Sub arn:aws:s3:::${AWS::AccountId}-common-daten
+                    #- !Sub arn:aws:s3:::${AWS::AccountId}-common-daten/*
+                    #- !Sub arn:aws:s3:::${AWS::AccountId}-common-software
+                    #- !Sub arn:aws:s3:::${AWS::AccountId}-common-software/*
+                 #   - !Sub arn:aws:s3:::${AWS::AccountId}-tpo-psx-install
+                #    - !Sub arn:aws:s3:::${AWS::AccountId}-tpo-psx-install/*
+                 #   - !Sub arn:aws:s3:::${AWS::AccountId}-bista/*
+
+  
+  LogstashAl23PsxServerEc2InstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Roles:
+        - !Ref LogstashAl23PsxServerEc2InstanceRole
+        
+  LogstashAl23PsxTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: "PSX Logstash Client Alarm"
+      TopicName: "LogstashAl23PsxAlarm"
+      Subscription:
+        - Endpoint: psx@deutschebahn.com
+          Protocol: email
+
+  LogstashAl23PsxSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Logstash Server"
+      VpcId: !ImportValue VPC1-VPC-ID
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-srv
+
+  LogstashAl23PsxSecurityGroupIngressVPC:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: VPC wide access to logstash ports
+      GroupId: !Ref LogstashAl23PsxSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5000
+      ToPort: 5099
+      CidrIp: !ImportValue VPC1-CIDR
+
+  LogstashAl23PsxServerVolume:
+    Type: 'AWS::EC2::Volume'
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone
+      Encrypted: true
+      KmsKeyId: !ImportValue infra-kms-MasterKeyArn
+      Size: !Ref DataVolumeSize
+      VolumeType: gp3
+      SnapshotId: !If [UseVolSnapshot, !Ref VolSnapshotID, !Ref "AWS::NoValue"]
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}
+        - Key: !Sub "Backup-${ApplicationName}-${Environment}-${Subsystem}-Al23"
+          Value: "Yes"
+
+
+  LogstashAl23PsxServerLaunchTemplate:
+    Type: 'AWS::EC2::LaunchTemplate'
+    DependsOn: LogstashAl23PsxServerVolume
+    Properties:
+      LaunchTemplateData:
+        IamInstanceProfile: 
+          Arn: !GetAtt LogstashAl23PsxServerEc2InstanceProfile.Arn
+        ImageId: !Ref AMI
+        Monitoring: 
+          Enabled: true
+        InstanceType: !Ref InstanceType
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref RootVolumeSize   
+        KeyName: !Ref KeyPair
+        SecurityGroupIds:
+          - !ImportValue infra-base-InfraSecurityGroup
+          - !ImportValue infra-psx-pan-PanPsxSecurityGroup
+          - !GetAtt LogstashAl23PsxSecurityGroup.GroupId
+        UserData:
+          Fn::Base64: !Sub
+            - |
+                #!/bin/bash -xe
+
+                TOKEN=$(curl --request PUT "http://169.254.169.254/latest/api/token" --header "X-aws-ec2-metadata-token-ttl-seconds: 3600")
+                instance_id=$(curl -s http://169.254.169.254/latest/meta-data/instance-id --header "X-aws-ec2-metadata-token: $TOKEN")
+                
+                 # attach secondary (persistent) volume
+                device_name=/dev/sdf
+                while ! aws --region ${AWS::Region} ec2 describe-volumes --volume-id ${LogstashAl23PsxServerVolume} --query 'Volumes[0].State' --output text | grep "available"; do
+                  sleep 1
+                done
+                aws --region ${AWS::Region} ec2 attach-volume --device $device_name --instance-id $instance_id --volume-id ${LogstashAl23PsxServerVolume}
+                sleep 5
+
+                # mount volume
+                if [ ! -L /dev/disk/by-label/app ]; then
+                    # first use => initialize
+                    lsblk
+                    fdisk $device_name << EOF
+                g
+                n
+                1
+                
+                
+                w
+                EOF
+                    sleep 5
+                    mkfs -t ext4 "$device_name"1
+                    e2label "$device_name"1 app
+                fi
+                mount_dir=/opt/logstash/logfiles
+                mkdir -p $mount_dir
+                mount -L app $mount_dir
+                #chown -R app:personal $mount_dir
+                chmod 777 $mount_dir
+                
+                # nach reboot laufwerk wieder mounten
+                echo "/dev/nvme1n1p1    /opt/logstash/logfiles  ext4    defaults        0       0" >> /etc/fstab
+                
+                # install packages
+                source /etc/profile.d/proxy.sh
+                dnf clean all
+                dnf update -y
+                
+                #aktivieren von auto dnf update 
+                echo "0 1 * * * dnf update -y --security > /tmp/dnf-update-security.log 2>&1" >> /var/spool/cron/root
+                echo "0 2 * * * /opt/logstash/logfiles/rebootIfNecesarry" >> /var/spool/cron/root
+                
+                #install logstash
+                mkdir -p /app/logstash
+                aws s3 cp ${LogstashDownloadUrl} /app/logstash/logstash.rpm
+                cd /app/logstash
+                rpm -i logstash.rpm
+                
+                aws s3 cp s3://556971410989-nvs/install/logstash_psx/logstash_conf.zip /etc/logstash/logstash_conf.zip
+                cd /etc/logstash
+                #original Konfig l?schen
+                rm -f pipelines.yml 
+                rm -f logstash.yml 
+                unzip /etc/logstash/logstash_conf.zip
+                
+                #diskspace Alarme einrichten
+                chmod +x /etc/logstash/createDiskSpaceAlarmLogstash.sh
+                /etc/logstash/createDiskSpaceAlarmLogstash.sh
+                
+                chmod +x /etc/logstash/cleanup.sh
+                
+                systemctl enable logstash.service
+                systemctl restart logstash.service
+                
+                
+                #cleanup aktivieren
+                echo "00 23 * * * /etc/logstash/cleanup.sh" >> /var/spool/cron/root
+                
+                # create/update route 53 entry for infra-psx-logstash1
+                aws route53 change-resource-record-sets --hosted-zone-id ${DNSZoneID} --change-batch "{\"Comment\": \"Update NVS PSX Logstashserver IP\", \"Changes\": [{\"Action\": \"UPSERT\",\"ResourceRecordSet\": {\"Name\": \"infra-psx-logstash1.${DNSZoneName}.\",\"Type\": \"A\",\"TTL\": 15,\"ResourceRecords\": [{\"Value\": \"$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4 --header "X-aws-ec2-metadata-token: $TOKEN")\"}]}}]}"
+                
+                function die
+                {
+                    aws s3 cp /var/log/cloud-init-output.log s3://${AWS::AccountId}-nvs/logs/startup/$instance_id-cloud-init-output.log
+                    /opt/aws/bin/cfn-signal -e 1 --region ${AWS::Region} --stack ${AWS::StackName} --resource LogstashAl23PsxServerAutoScalingGroup
+                }
+
+
+                
+                cfn-signal -e 0 --stack ${AWS::StackName} --resource   LogstashAl23PsxServerAutoScalingGroup --region ${AWS::Region} || true
+
+            - DNSZoneID: !ImportValue infra-base-HostedZoneID
+              DNSZoneName: !ImportValue infra-base-HostedZoneName
+
+  LogstashAl23PsxServerAutoScalingGroup:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Properties:
+      AutoScalingGroupName: !Sub ${AWS::StackName}
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LogstashAl23PsxServerLaunchTemplate
+        Version: !GetAtt LogstashAl23PsxServerLaunchTemplate.LatestVersionNumber
+      HealthCheckGracePeriod: 1800
+      HealthCheckType: EC2
+      DesiredCapacity: "1"
+      MaxSize: "1"
+      MinSize: "1"
+      VPCZoneIdentifier:
+        - 'Fn::ImportValue': !Sub
+          - VPC1-AZ${AvailabilityZoneIndex}Subnet1
+          - AvailabilityZoneIndex: !FindInMap [AvailabilityZoneMap, !Ref AvailabilityZone, Index]
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 0
+        MaxBatchSize: 1
+        WaitOnResourceSignals: true
+        PauseTime: PT10M
+
+

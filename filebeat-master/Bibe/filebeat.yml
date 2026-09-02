@@ -1,0 +1,39 @@
+filebeat.inputs:
+    - type: filestream
+      id: bibe-apache-logs
+      paths: [/var/log/httpd/*]
+      fields:
+        dataType: apache
+        environment: %ENV%
+        teilverfahren: nvs-bibe
+        instance-id: %INSTANCEID%
+      encoding: ISO-8859-1
+
+    - type: filestream
+      id: bibe-hafas-logs
+      paths:
+        - "/var/app/nvs/log/*.log"
+        - "/var/app/nvs/log/current/hafas/*.log"
+        - "/var/app/nvs/log/current/hafas/*/*.log"
+        - "/var/app/nvs/log/current/hafas/db/*/*.log"
+        - "/var/log/cloud-init-output.log"
+      fields:
+        dataType: hafas
+        environment: %ENV%
+        teilverfahren: nvs-bibe
+        instance-id: %INSTANCEID%
+      encoding: ISO-8859-1
+      exclude_files: ['.*(buvo|verbundshop).*']
+
+output.logstash:
+  hosts: ["%LOGSTASHSERVER%:%LOGSTASHPORT%"]
+  worker: 1
+
+logging:
+  level: warning
+  to_files: true
+  to_syslog: false
+  files:
+    path: /var/app/nvs/log/current/hafas/filebeat
+    name: filebeat.log
+    keepfiles: 2

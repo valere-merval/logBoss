@@ -1,0 +1,48 @@
+filebeat.inputs:
+    - type: filestream
+      id: nvs-pxy-apache-logs
+      paths: [/var/app/nvs/nvshttpd/apache_nvswls/*log]
+      fields:
+        dataType: apache
+        environment: ${Environment}
+        teilverfahren: pxysrv-${SubEnvironment}
+        instance-id: ${!instanceid}}
+      encoding: ISO-8859-1
+
+    - type: filestream
+      id: nvs-pxy-filebeat-logs
+      paths: [/var/log/filebeat/filebeat.log]
+      fields:
+        dataType: filebeat
+        environment: ${Environment}
+        teilverfahren: pxysrv-${SubEnvironment}
+        instance-id: ${!instanceid}}
+      encoding: ISO-8859-1
+
+    - type: filestream
+      id: nvs-pxy-wls-logs
+      paths: [/var/app/nvs/nvswls/weblogic/*.log]
+      fields:
+        dataType: wls
+        environment: ${Environment}
+        teilverfahren: pxysrv-${SubEnvironment}
+        instance-id: ${!instanceid}}
+      encoding: ISO-8859-1
+      #mit multiline werden mehrer zeilen im logfile zu einer message zusammengefasst. wird hier benutzt um java stacktrace error meldungen zusammen zu fassen
+      #diese kommen im nvs_entw.log, tech.log, wls_managedapp,at380app-domain.log vor
+      #und beginnen mit ####< oder dem Monatsnamen (z.B. Jun)
+      multiline.pattern: '(^####<|^Jan|^Feb|^Mar|^Apr|^Mai|^Jun|^Jul|Aug|^Sep|^Okt|^Nov|^Dez)'
+      multiline.negate: true
+      multiline.match: after
+
+output.logstash:
+  hosts: ["infra-psx-logstash1.dbv3-test.comp.db.de:${LogServerPort}"]
+  worker: 1
+logging:
+  level: warning
+  to_files: true
+  to_syslog: false
+  files:
+    path: /var/log/filebeat
+    name: filebeat.log
+    keepfiles: 2

@@ -1,0 +1,41 @@
+filebeat.inputs:
+- type: filestream
+  id: k90-apache-logs
+  enabled: true
+  paths:
+    - /app/kurs90/int/apache-2.4-inst1/logs/*_log
+  fields: {dataType: apache, environment: ${Environment}, teilverfahren: tpo}
+  take_over:
+    enabled: true
+- type: filestream
+  id: k90-app-logs
+  enabled: true
+  paths:
+    - /var/app/kurs90/log/dispatcher-logs/*/*.log
+    - /var/app/kurs90/log/EVA-logs/*.log
+    - /var/app/kurs90/log/EVA-logs/errors/*.log
+    - /var/app/kurs90/log/NPS-logs/*.log
+    - /var/app/kurs90/log/TM_LTBW-logs/*/*.log
+    - /var/app/kurs90/log/TM_LTN-logs/*/*.log
+    - /var/app/kurs90/log/TWE-logs/*.log
+    - /var/app/kurs90/log/TWE-logs/errors/*.log
+    - /var/app/kurs90/log/VL-logs/*/*.log
+    - /var/log/cloud-init-output.log
+  fields: {dataType: applog, environment: ${Environment}, teilverfahren: tpo}
+  take_over:
+    enabled: true
+name: tpo-${Environment}-appsrv
+fields:
+  environment: ${Environment}
+  teilverfahren: tpo
+output.logstash:
+  hosts: ["infra-psx-logstash1.dbv3-test.comp.db.de:${LogServerPort}"]
+  worker: 1
+logging:
+  level: warning
+  to_files: true
+  to_syslog: false
+  files:
+    path: /var/log/filebeat
+    name: filebeat.log
+    keepfiles: 2

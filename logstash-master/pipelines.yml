@@ -1,0 +1,219 @@
+# This file is where you define your pipelines. You can define multiple.
+# For more information on multiple pipelines, see the documentation:
+#   https://www.elastic.co/guide/en/logstash/current/multiple-pipelines.html
+
+- pipeline.id: main
+  path.config: "/etc/logstash/conf.d/*.conf"
+# PIPELINE fuer BIBE PSX-H Port 5040
+- pipeline.id: bibe_h
+  path.config: "/etc/logstash/pipelines/bibe-h.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer BIBE PSX-I Port 5041
+- pipeline.id: bibe_i
+  path.config: "/etc/logstash/pipelines/bibe-i.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer BIBE PSX-J Port 5042
+- pipeline.id: bibe_j
+  path.config: "/etc/logstash/pipelines/bibe-j.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer BIBE PSX-K Port 5043
+- pipeline.id: bibe_k
+  path.config: "/etc/logstash/pipelines/bibe-k.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer BIBE PSX-L Port 5044
+- pipeline.id: bibe_l
+  path.config: "/etc/logstash/pipelines/bibe-l.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer BIBE PSX-Q Port 5045
+- pipeline.id: bibe_q
+  path.config: "/etc/logstash/pipelines/bibe-q.conf"
+  pipeline.workers: 1
+# pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer BIBE PSX-M Port 5046
+- pipeline.id: bibe_m
+  path.config: "/etc/logstash/pipelines/bibe-m.conf"
+  pipeline.workers: 1
+# pipeline.output.workers: 1
+  pipeline.batch.size: 1
+###############################################################
+
+## PIPELINE fuer TPO PSX-H Port 5050
+- pipeline.id: tpo_h
+  path.config: "/etc/logstash/pipelines/tpo-h.conf"
+  pipeline.workers: 1
+# pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer TPO PSX-I Port 5051
+- pipeline.id: tpo_i
+  path.config: "/etc/logstash/pipelines/tpo-i.conf"
+  pipeline.workers: 1
+# pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer TPO PSX-J Port 5052
+- pipeline.id: tpo_j
+  path.config: "/etc/logstash/pipelines/tpo-j.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer TPO PSX-K Port 5053
+- pipeline.id: tpo_k
+  path.config: "/etc/logstash/pipelines/tpo-k.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer TPO PSX-L Port 5054
+- pipeline.id: tpo_l
+  path.config: "/etc/logstash/pipelines/tpo-l.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer TPO PSX-Q Port 5055
+- pipeline.id: tpo_q
+  path.config: "/etc/logstash/pipelines/tpo-q.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer TPO PSX-M Port 5056
+- pipeline.id: tpo_m
+  path.config: "/etc/logstash/pipelines/tpo-m.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+#####################################################################
+
+## PIPELINE fuer APP PSX-H Port 5060
+- pipeline.id: app_h
+  path.config: "/etc/logstash/pipelines/app-h.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer APP PSX-I Port 5061
+- pipeline.id: app_i
+  path.config: "/etc/logstash/pipelines/app-i.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer APP PSX-J Port 5062
+- pipeline.id: app_j
+  path.config: "/etc/logstash/pipelines/app-j.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer APP PSX-K Port 5063
+- pipeline.id: app_k
+  path.config: "/etc/logstash/pipelines/app-k.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer APP PSX-L Port 5064
+- pipeline.id: app_l
+  path.config: "/etc/logstash/pipelines/app-l.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer APP PSX-Q Port 5065
+- pipeline.id: app_q
+  path.config: "/etc/logstash/pipelines/app-q.conf"
+  pipeline.workers: 1
+#  pipeline.output.workers: 1
+  pipeline.batch.size: 1
+
+# PIPELINE fuer APP PSX-M Port 5066
+- pipeline.id: app_m
+  path.config: "/etc/logstash/pipelines/app-m.conf"
+  pipeline.workers: 1
+#   pipeline.output.workers: 1
+  pipeline.batch.size: 1
+#################################################################
+#auskommentiert da kein Elastic Search aktiv
+### PIPELINE fuer EPA3 PSX-H Port 5070
+##- pipeline.id: epa3_h
+##  path.config: "/etc/logstash/pipelines/epa3-h.conf"
+##  pipeline.workers: 1
+###   pipeline.output.workers: 1
+##  pipeline.batch.size: 1
+##
+### PIPELINE fuer EPA3 PSX-I Port 5071
+##- pipeline.id: epa3_i
+##  path.config: "/etc/logstash/pipelines/epa3-i.conf"
+##  pipeline.workers: 1
+###   pipeline.output.workers: 1
+##  pipeline.batch.size: 1
+##
+### PIPELINE fuer EPA3 PSX-J Port 5072
+##- pipeline.id: epa3_j
+##  path.config: "/etc/logstash/pipelines/epa3-j.conf"
+##  pipeline.workers: 1
+###   pipeline.output.workers: 1
+##  pipeline.batch.size: 1
+##
+### PIPELINE fuer EPA3 PSX-K Port 5073
+##- pipeline.id: epa3_k
+##  path.config: "/etc/logstash/pipelines/epa3-k.conf"
+##  pipeline.workers: 1
+###   pipeline.output.workers: 1
+##  pipeline.batch.size: 1
+##
+### PIPELINE fuer EPA3 PSX-L Port 5074
+##- pipeline.id: epa3_l
+##  path.config: "/etc/logstash/pipelines/epa3-l.conf"
+##  pipeline.workers: 1
+###   pipeline.output.workers: 1
+##  pipeline.batch.size: 1
+##
+### PIPELINE fuer EPA3 PSX-Q Port 5075
+##- pipeline.id: epa3_q
+##  path.config: "/etc/logstash/pipelines/epa3-q.conf"
+##  pipeline.workers: 1
+###   pipeline.output.workers: 1
+##  pipeline.batch.size: 1
+##
+### PIPELINE fuer EPA3 PSX-M Port 5076
+##- pipeline.id: epa3_m
+##  path.config: "/etc/logstash/pipelines/epa3-m.conf"
+##  pipeline.workers: 1
+###   pipeline.output.workers: 1
+##  pipeline.batch.size: 1
+###########################################################################
+##
+###Pipeline für Logstash
+##- pipeline.id: log_logstash
+##  path.config: "/etc/logstash/pipelines/logstash-pipe.conf"
+##  pipeline.workers: 1
+###   pipeline.output.workers: 1
+##  pipeline.batch.size: 1
+##
+###Pipeline für elasticsearch
+##- pipeline.id: log_elastic
+##  path.config: "/etc/logstash/pipelines/elastic-pipe.conf"
+##  pipeline.workers: 1
+###   pipeline.output.workers: 1
+##  pipeline.batch.size: 1
