@@ -73,7 +73,7 @@ Parameters:
     Default: ""
   LogstashDownloadUrl:
     Type: String
-    Default: s3://556971410989-nvs/install/logstash_psx/logstash-8.17.0-x86_64.rpm
+    Default: s3://556971410989-nvs/install/logstash_psx/logstash-9.5.4-x86_64.rpm
     Description: 'Enter the s3 path of the logstash rpm file'
 
 # ============================================================================ #
